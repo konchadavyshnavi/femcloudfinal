@@ -21,11 +21,30 @@ export const addProduct = async (req, res) => {
     console.log("req.body:", req.body);
     console.log("req.file:", req.file);
 
-    const { name, description, price, category, whatsappNumber, sellerId } = req.body;
+    // Extract fields - handle both seller and sellerId
+    const { name, description, price, category, whatsappNumber, sellerId, seller } = req.body;
+
+    // Determine the actual seller ID (handle both field names)
+    const actualSellerId = sellerId || seller;
+    
+    console.log("Extracted sellerId:", sellerId);
+    console.log("Extracted seller:", seller);
+    console.log("Actual sellerId to use:", actualSellerId);
 
     // Validation
-    if (!name || !description || !price || !category || !whatsappNumber || !sellerId) {
-      return res.status(400).json({ success: false, message: "Missing required field(s)" });
+    if (!name || !description || !price || !category || !whatsappNumber || !actualSellerId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Missing required field(s)",
+        missing: {
+          name: !name,
+          description: !description,
+          price: !price,
+          category: !category,
+          whatsappNumber: !whatsappNumber,
+          sellerId: !actualSellerId
+        }
+      });
     }
 
     // Handle single image
@@ -39,7 +58,7 @@ export const addProduct = async (req, res) => {
         await fs.promises.unlink(req.file.path);
         imageUrl = uploaded.secure_url;
       } catch (err) {
-        console.error("Cloudinary upload error:", err); // <-- SHOW FULL ERROR
+        console.error("Cloudinary upload error:", err);
         await fs.promises.unlink(req.file.path);
         return res.status(500).json({
           success: false,
@@ -51,15 +70,15 @@ export const addProduct = async (req, res) => {
       return res.status(400).json({ success: false, message: "A product image is required" });
     }
 
-    // Create product data
+    // Create product data - use the actualSellerId for the seller field
     const productData = {
       name: name.trim(),
       description: description.trim(),
       price: Number(price),
-      image: imageUrl, // single image URL string
+      image: imageUrl,
       category: category.trim(),
       whatsappNumber: whatsappNumber.trim(),
-      seller: sellerId
+      seller: actualSellerId // Use the determined seller ID
     };
 
     console.log("Saving product:", productData);
@@ -84,10 +103,31 @@ export const addProduct = async (req, res) => {
 
   } catch (error) {
     console.error("Error adding product:", error);
-    res.status(500).json({ success: false, message: "Server error: " + error.message });
+    
+    // More specific error handling
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: "Validation error",
+        errors: error.errors
+      });
+    }
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID format",
+        field: error.path,
+        value: error.value
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error: " + error.message 
+    });
   }
 };
-
 // function for removing product
 export const removeProduct = async (req, res) => {
     try {

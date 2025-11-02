@@ -21,19 +21,35 @@ const SellerLogin = ({ onLogin }) => {
         password: form.password,
       });
 
-      if (response.data.success) {
-        localStorage.setItem("sellerToken", response.data.token);
-         localStorage.setItem("sellerId", response.data.sellerId); 
-        localStorage.setItem("sellerName", response.data.sellerName);
-        setSuccess("Login successful! Redirecting...");
-        onLogin(response.data.token);
+      console.log("Login response:", response.data); // Debug log
 
-         window.location.href = "/products";
+      if (response.data.success) {
+        const { token, sellerId, sellerName } = response.data;
+        
+        // Validate that sellerId exists and is not undefined
+        if (!sellerId) {
+          setError("Login failed: No seller ID received from server");
+          setLoading(false);
+          return;
+        }
+
+        setSuccess("Login successful! Redirecting...");
+        
+        // Call onLogin with BOTH token and sellerId
+        onLogin(token, sellerId);
+        
+        // Optional: You can remove the localStorage.setItem calls here
+        // since onLogin should handle them, or keep them for redundancy
+        localStorage.setItem("sellerToken", token);
+        localStorage.setItem("sellerId", sellerId);
+        localStorage.setItem("sellerName", sellerName);
+        
       } else {
         setError(response.data.message || "Invalid credentials");
       }
-    } catch {
-      setError("Server error. Please try again later.");
+    } catch (error) {
+      console.error("Login error:", error);
+      setError(error.response?.data?.message || "Server error. Please try again later.");
     } finally {
       setLoading(false);
     }

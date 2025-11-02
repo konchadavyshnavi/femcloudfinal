@@ -15,14 +15,26 @@ const ProductForm = ({ form, onChange, onSubmit, onCancel, editing }) => {
   }, [imageFile]);
 
   const handleImageChange = (e) => {
-  const file = e.target.files && e.target.files[0];
-  console.log("File selected:", file);
-  setImageFile(file || null);
-};
-
+    const file = e.target.files && e.target.files[0];
+    console.log("File selected:", file);
+    setImageFile(file || null);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!form.name || !form.description || !form.price || !form.category || !form.whatsappNumber) {
+      alert("Please fill all required fields");
+      return;
+    }
+
+    // For new products, image is required
+    if (!editing && !imageFile) {
+      alert("Please select an image for the product");
+      return;
+    }
+
     const data = new FormData();
     data.append("name", form.name);
     data.append("description", form.description);
@@ -32,9 +44,8 @@ const ProductForm = ({ form, onChange, onSubmit, onCancel, editing }) => {
     data.append("sellerId", form.sellerId);
     console.log("ImageFile before submit:", imageFile);
 
-
     if (imageFile) {
-      data.append("image", imageFile); // SINGLE image field!
+      data.append("image", imageFile);
     }
 
     onSubmit(data);
@@ -47,7 +58,7 @@ const ProductForm = ({ form, onChange, onSubmit, onCancel, editing }) => {
       <input
         type="text"
         name="name"
-        placeholder="Product Name"
+        placeholder="Product Name *"
         value={form.name}
         onChange={onChange}
         required
@@ -55,7 +66,7 @@ const ProductForm = ({ form, onChange, onSubmit, onCancel, editing }) => {
       />
       <textarea
         name="description"
-        placeholder="Description"
+        placeholder="Description *"
         value={form.description}
         onChange={onChange}
         required
@@ -65,10 +76,12 @@ const ProductForm = ({ form, onChange, onSubmit, onCancel, editing }) => {
       <input
         type="number"
         name="price"
-        placeholder="Price"
+        placeholder="Price *"
         value={form.price}
         onChange={onChange}
         required
+        min="0"
+        step="0.01"
         className="w-full border rounded p-3"
       />
       <select
@@ -78,7 +91,7 @@ const ProductForm = ({ form, onChange, onSubmit, onCancel, editing }) => {
         required
         className="w-full border rounded p-3"
       >
-        <option value="">Select Category</option>
+        <option value="">Select Category *</option>
         <option value="Electronics">Electronics</option>
         <option value="Fashion">Fashion</option>
         <option value="Home & Kitchen">Home & Kitchen</option>
@@ -93,7 +106,7 @@ const ProductForm = ({ form, onChange, onSubmit, onCancel, editing }) => {
       <input
         type="tel"
         name="whatsappNumber"
-        placeholder="WhatsApp Number"
+        placeholder="WhatsApp Number *"
         value={form.whatsappNumber}
         onChange={onChange}
         required
@@ -101,7 +114,7 @@ const ProductForm = ({ form, onChange, onSubmit, onCancel, editing }) => {
       />
       <div>
         <label className="block mb-1 font-medium text-gray-700">
-          Upload Image
+          Upload Image {!editing && "*"}
         </label>
         <input
           type="file"
@@ -109,9 +122,16 @@ const ProductForm = ({ form, onChange, onSubmit, onCancel, editing }) => {
           onChange={handleImageChange}
           required={!editing}
         />
+        <p className="text-sm text-gray-500 mt-1">
+          {editing ? "Select new image to update (optional)" : "Image is required"}
+        </p>
       </div>
       {previewUrl && (
-        <img src={previewUrl} alt="Preview" className="w-24 h-24 object-cover rounded border mt-2" />
+        <img 
+          src={previewUrl} 
+          alt="Preview" 
+          className="w-24 h-24 object-cover rounded border mt-2" 
+        />
       )}
       <div className="flex gap-4">
         <button
